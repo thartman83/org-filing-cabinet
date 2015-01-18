@@ -18,11 +18,11 @@
 
 (defun org-fc/scan-file (file-name)
   "Use an attached scanner to scan multiple pages to FILE-NAME."
-  (interactive "F")
-  (let ((page-num 0)
-        (page-format (f-join default-directory "%s%d.pnm")))
-    (fc-org/with-temp-dir "/tmp"
-      (while (org-filer-continue-scan? page-num)
+  (interactive "sFile name: ")
+  (org-fc/with-temp-dir "/tmp"
+    (let ((page-num 0)
+          (page-format (f-join default-directory "%s%d.pnm")))
+      (while (org-fc/continue-scan? page-num)
         (org-fc/scan-page (format page-format (f-base file-name) page-num))
         (setf page-num (1+ page-num)))
       (org-fc/merge-pages-to-pdf default-directory
@@ -45,7 +45,8 @@
   "Merge all .PNM files in IMAGE-PATH into PDF-FILE."
   (message "Merging pages into %s... " pdf-file)
   (call-process-shell-command
-   (format org-fc/merge-pdf-cmd pdf-file)))
+   (format org-fc/merge-pdf-cmd pdf-file))
+  pdf-file)
 
 (provide 'org-filing-cabinet-scan)
 ;;; org-filing-cabinet-scan ends here
