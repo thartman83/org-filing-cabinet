@@ -49,7 +49,9 @@
 
 (defun org-fc/capture-scan-file (file-name)
   "Scan and capture FILE-NAME into the filing cabinet."
-  (interactive "sName of file: ")
+  (interactive
+   (let ((timestamp (format-time-string "%Y%m%d-%H%M")))
+     (list (read-string "Scan file name: " (format "%s-" timestamp)))))
   (let* ((file-path (org-fc/scan-file file-name))
          (filing-cabinet-path (f-join (org-fc/current-filing-cabinet-dir)
                               (f-filename file-path))))
