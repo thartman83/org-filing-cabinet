@@ -28,7 +28,7 @@
     (call-process-shell-command (format  "git add '%s'" file-name))
     (call-process-shell-command (format "git commit -am '%s'" commit-msg)))
   (when (not (null org-fc/auto-commit-post-command))
-    (funcal org-fc/auto-commit-post-command file-name)))
+    (funcall org-fc/auto-commit-post-command file-name)))
 
 (provide 'org-filing-cabinet-auto-commit)
 ;;; org-filing-cabinet-auto-commit.el ends here

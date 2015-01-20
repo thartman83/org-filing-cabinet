@@ -2,6 +2,7 @@
 ;;; Commentary:
 ;;; Code:
 
+(require 'f)
 (require 'org-filing-cabinet-scan)
 (require 'org-filing-cabinet-auto-commit)
 
@@ -21,7 +22,7 @@
   :type 'string)
 
 (defcustom org-fc/capture-template-base
-  "* [[%c]] %^g
+  "* [[%c][%(f-filename (car kill-ring))]] %^g
 :PROPERTIES:
 :WHOSE: *WHOSE*
 :DATE-FILED: %t
@@ -37,7 +38,8 @@
   (interactive "FFile: ")
   (let ((org-capture-templates
          `(("f" "Filing Cabinet" entry
-            (file+headline org-fc/org-file "2015-01")
+            (file+headline ,(f-join org-fc/filing-cabinet-directory org-fc/org-file)
+                           ,(format-time-string "%Y-%m"))
             ,(org-fc/get-capture-template)))))
     (kill-new file-path)
     (org-capture nil "f")))
