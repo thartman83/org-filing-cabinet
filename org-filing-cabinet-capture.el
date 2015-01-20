@@ -40,8 +40,20 @@
          `(("f" "Filing Cabinet" entry
             (file+headline ,(f-join org-fc/filing-cabinet-directory org-fc/org-file)
                            ,(org-fc/get-create-category))
-            ,(org-fc/get-capture-template)))))
-    (kill-new file-path)
+            ,(org-fc/get-capture-template))))
+        (filing-path (if (f-parent-of? (org-fc/current-filing-cabinet-dir) file-path)
+                         file-path
+                       (f-join (org-fc/current-filing-cabinet-dir) (f-filename file-path)))))
+    (when (not (f-exists? file-path))
+      (error "The file `%s' does not exist and can't be added to the filing cabinet"))
+    (when (not (f-same? file-path filing-path))
+      (when (f-exists? filing-path)
+        (error "The file `%s' already exists can not refile"))
+      (if (y-or-n-p "Move file to filing cabinet (no to Copy) ? ")
+          (f-move file-path filing-path)
+        (f-copy file-path (f-join (org-fc/current-filing-cabinet-dir)
+                                  (f-filename file-path)))))
+    (kill-new filing-path)
     (org-capture nil "f")))
 
 (defun org-fc/get-capture-template ()
@@ -66,6 +78,9 @@ The current filing cabinet is defined as YYYY-mm off the root directory
 of org-fc/filing-cabinet-directory.
 
 If the directory does not exist create it."
+  (when (not (f-directory? org-fc/filing-cabinet-directory))
+    (error "Unable to locate filing cabinet directory `%s'"
+           org-fc/filing-cabinet-directory))
   (let ((retval (f-join org-fc/filing-cabinet-directory
                         (format-time-string "%Y-%m"))))
     (when (not (f-directory? retval))
@@ -80,6 +95,8 @@ If the current time frame category does not exist append it to
   the document as a new entry."
   (let ((time-frame (format-time-string "%Y-%m"))
         (org-path (f-join org-fc/filing-cabinet-directory org-fc/org-file)))
+    (when (not (f-exists? org-path))
+      (error "Could not find filing cabinet org file `%s'" org-path))
     (when (not (string-match-p (format "* %s" time-frame)
                                (f-read-text org-path)))
       (message "Creating new category `%s'" time-frame)
@@ -87,7 +104,8 @@ If the current time frame category does not exist append it to
         (goto-char (point-max))
         (insert "#+CATEGORY: " time-frame "\n")
         (insert "* " time-frame)
-        (save-buffer)))
+        (save-buffer)
+        (kill-buffer)))
     time-frame))
 
 (provide 'org-filing-cabinet-capture)
