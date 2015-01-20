@@ -39,7 +39,7 @@
   (let ((org-capture-templates
          `(("f" "Filing Cabinet" entry
             (file+headline ,(f-join org-fc/filing-cabinet-directory org-fc/org-file)
-                           ,(format-time-string "%Y-%m"))
+                           ,(org-fc/get-create-category))
             ,(org-fc/get-capture-template)))))
     (kill-new file-path)
     (org-capture nil "f")))
@@ -73,6 +73,22 @@ If the directory does not exist create it."
                retval)
       (f-mkdir retval))
     retval))
+
+(defun org-fc/get-create-category ()
+  "Return the current time frame category name in the format 'YYYY-MM'.
+If the current time frame category does not exist append it to
+  the document as a new entry."
+  (let ((time-frame (format-time-string "%Y-%m"))
+        (org-path (f-join org-fc/filing-cabinet-directory org-fc/org-file)))
+    (when (not (string-match-p (format "* %s" time-frame)
+                               (f-read-text org-path)))
+      (message "Creating new category `%s'" time-frame)
+      (with-current-buffer (find-file-noselect org-path)
+        (goto-char (point-max))
+        (insert "#+CATEGORY: " time-frame "\n")
+        (insert "* " time-frame)
+        (save-buffer)))
+    time-frame))
 
 (provide 'org-filing-cabinet-capture)
 ;;; org-filing-cabinet-capture.el ends here
