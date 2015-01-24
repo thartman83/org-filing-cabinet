@@ -3,6 +3,7 @@
 ;;; Code:
 
 (require 'f)
+(require 's)
 (require 'org-filing-cabinet-scan)
 (require 'org-filing-cabinet-auto-commit)
 
@@ -43,9 +44,11 @@
             ,(org-fc/get-capture-template))))
         (filing-path (if (f-parent-of? (org-fc/current-filing-cabinet-dir) file-path)
                          file-path
-                       (f-join (org-fc/current-filing-cabinet-dir) (f-filename file-path)))))
+                       (f-join (org-fc/current-filing-cabinet-dir)
+                               (f-filename file-path)))))
     (when (not (f-exists? file-path))
-      (error "The file `%s' does not exist and can't be added to the filing cabinet"))
+      (error "The file `%s' does not exist and can't be added to
+      the filing cabinet"))
     (when (not (f-same? file-path filing-path))
       (when (f-exists? filing-path)
         (error "The file `%s' already exists can not refile"))
@@ -58,7 +61,7 @@
 
 (defun org-fc/get-capture-template ()
   "Get the capture template."
-  (replace-regexp-in-string (regexp-quote "*WHOSE*") org-fc/whose
+  (replace-regexp-in-string (regexp-quote "*WHOSE*") (org-fc/parse-whose)
                             org-fc/capture-template-base))
 
 (defun org-fc/capture-scan-file (file-name)
@@ -68,7 +71,9 @@
      (list (read-string "Scan file name: " (format "%s-" timestamp)))))
   (let* ((file-path (org-fc/scan-file file-name))
          (filing-cabinet-path (f-join (org-fc/current-filing-cabinet-dir)
-                              (f-filename file-path))))
+                                      (f-filename file-path))))
+    (when (not (f-exists? file-path))
+      (error "File `%s' does not exist, can not be filed"))
     (f-move file-path filing-cabinet-path)
     (org-fc/capture-file filing-cabinet-path)))
 
@@ -107,6 +112,12 @@ If the current time frame category does not exist append it to
         (save-buffer)
         (kill-buffer)))
     time-frame))
+
+(defun org-fc/parse-whose ()
+  "Parse `org-fc/whose' variable."
+  (if (s-contains? "|" org-fc/whose)
+      (s-concat "%^{Whose file? |" org-fc/whose "}")
+    org-fc/whose))
 
 (provide 'org-filing-cabinet-capture)
 ;;; org-filing-cabinet-capture.el ends here

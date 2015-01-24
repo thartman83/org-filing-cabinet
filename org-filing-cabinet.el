@@ -25,5 +25,11 @@
 (require 'org-filing-cabinet-auto-commit)
 (require 'org-filing-cabinet-capture)
 
+(defun org-fc/setup ()
+  "Function that will help setup the proper org-filing-cabinet environment."
+  (interactive)
+  ; (customize-set-value)
+  )
+
 (provide 'org-filing-cabinet)
 ;;; org-filing-cabinet.el ends here
