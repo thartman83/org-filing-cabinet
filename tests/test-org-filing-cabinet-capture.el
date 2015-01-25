@@ -148,5 +148,20 @@
                                     test-file)))
          (should (f-exists? (f-join default-directory test-file)))))))
 
+(ert-deftest capture-kill-ring-test ()
+  (noflet ((org-capture (goto keys) t)
+           (y-or-n-p (description) t))
+    (org-fc/with-temp-dir "/tmp"
+       (let ((org-fc/filing-cabinet-directory
+              (f-join default-directory "filing-cabinet"))
+             (test-file "tests.pdf"))
+         (f-mkdir org-fc/filing-cabinet-directory)
+         (f-touch (f-join org-fc/filing-cabinet-directory org-fc/org-file))
+         (f-touch test-file)
+         (should (org-fc/capture-file test-file))
+         (should (string= (car kill-ring)
+                          (f-join (org-fc/current-filing-cabinet-dir)
+                                  test-file)))))))
+
 (provide 'test-org-filing-cabinet-capture)
 ;;; test-org-filing-cabinet-capture.el ends here
