@@ -1,4 +1,4 @@
-;;; test-org-filing-cabinet-capture.el --- testing functions for org-filing-cabinet-capture
+;;; test-org-filing-cabinet-capture.el --- tests for org-filing-cabinet-capture
 ;;; Commentary:
 ;;; Code:
 
@@ -34,7 +34,7 @@
      (let ((org-fc/filing-cabinet-directory default-directory)
            (org-fc/org-file "test.org")
            (time-frame (format-time-string "%Y-%m"))
-           (existing-text "#+CATEGORY: 2014-12\n* 2014-12\n ** something\n ** something else\n"))
+           (existing-text "#+CATEGORY: 2014-12\n* 2014-12\n ** something"))
        (f-write-text existing-text
                      'utf-8 (f-join default-directory "test.org"))
        (should (string= (org-fc/get-create-category) time-frame))
@@ -64,24 +64,89 @@
            (time-frame (format-time-string "%Y-%m")))
        (f-mkdir "%Y-%m")
        (should (f-same? (f-join org-fc/filing-cabinet-directory time-frame)
-                        (org-fc/current-filing-cabinet-dir))))))
+                        (org-fc/current-filing-cabinet-dir)))))
+  ; test when the root filing directory is not writable
+  ; in any sane system / is not writable by USER
+  (let ((org-fc/filing-cabinet-directory (f-root)))
+    (should-error (org-fc/current-filing-cabinet-dir))))
 
 (ert-deftest test-org-fc/capture-scan-file ()
-  ; Test when org-fc/scan-file doesn't create the file `FILE-NAME`
+  ; Test when org-fc/scan-file doesn't create the file `FILE-NAME'
   (let ((file-name "foo.pdf"))
     (noflet ((org-fc/capture-file (file-name)
                                   file-name)
              (org-fc/scan-file (file-name)
-                               nil))
-      (should (string= (cadr (should-error (org-fc/capture-scan-file "foo.pdf")))
+                               file-name))
+      (should (string= (cadr (should-error (org-fc/capture-scan-file file-name)))
                        (format "File `%s' does not exist, can not be filed"
-                               file-name)))))
-  ;; 
-  (noflet ((org-fc/capture-file (file-name)
-                                file-name)
-           (org-fc/scan-file (file-name)
-                             (f-touch file-name)))
-    ))
+                               file-name))))))
+
+;; org-fc/parse-whose tests
+
+(ert-deftest test-org-fc/parse-whose ()
+  (let ((org-fc/whose "ME"))
+    (should (string= (org-fc/parse-whose) org-fc/whose)))
+  (let ((org-fc/whose "ME,SOMEONE,ELSE,ANOTHER"))
+    (should (string= (org-fc/parse-whose) org-fc/whose)))
+  (let ((org-fc/whose "ME|SOMEONELSE"))
+    (should (string= (org-fc/parse-whose)
+                     (concat "%^{Whose file? |" org-fc/whose "}")))))
+
+;; org-fc/capture-file tests
+
+(ert-deftest test-capturing-non-existant-file ()
+    ;; Tests for capturing a file that doesn't exist
+    (let ((file-name "nowhere.pdf"))
+      (noflet ((org-capture (goto keys) nil)
+               (y-or-n-p (description) t))
+        (should (string= (cadr (should-error (org-fc/capture-file file-name)))
+                         (format (concat "The file `%s' does not exist "
+                                         "and can't be added to the filing "
+                                         "cabinet")
+                                 file-name))))))
+
+(ert-deftest capture-existing-file-test ()
+  (noflet ((org-capture (goto keys) t)
+           (y-or-n-p (description) t))
+    (org-fc/with-temp-dir "/tmp"
+       (let ((org-fc/filing-cabinet-directory
+              (f-join default-directory "filing-cabinet"))
+             (test-file (f-join default-directory "test.pdf")))
+         (f-mkdir org-fc/filing-cabinet-directory)
+         (f-touch (f-join org-fc/filing-cabinet-directory org-fc/org-file))
+         (f-touch test-file)
+         (should (org-fc/capture-file test-file))
+         (should-error (org-fc/capture-file test-file))))))
+
+(ert-deftest capture-and-move-test ()
+  (noflet ((org-capture (goto keys) t)
+           (y-or-n-p (description) t))
+    (org-fc/with-temp-dir "/tmp"
+       (let ((org-fc/filing-cabinet-directory
+              (f-join default-directory "filing-cabinet"))
+             (test-file "test.pdf"))
+         (f-mkdir org-fc/filing-cabinet-directory)
+         (f-touch (f-join org-fc/filing-cabinet-directory org-fc/org-file))
+         (f-touch test-file)
+         (should (org-fc/capture-file test-file))
+         (should (f-exists? (f-join (org-fc/current-filing-cabinet-dir)
+                                    test-file)))
+         (should (not (f-exists? (f-join default-directory test-file))))))))
+
+(ert-deftest capture-and-copy-test ()
+  (noflet ((org-capture (goto keys) t)
+           (y-or-n-p (description) nil))
+    (org-fc/with-temp-dir "/tmp"
+       (let ((org-fc/filing-cabinet-directory
+              (f-join default-directory "filing-cabinet"))
+             (test-file "test.pdf"))
+         (f-mkdir org-fc/filing-cabinet-directory)
+         (f-touch (f-join org-fc/filing-cabinet-directory org-fc/org-file))
+         (f-touch test-file)
+         (should (org-fc/capture-file test-file))
+         (should (f-exists? (f-join (org-fc/current-filing-cabinet-dir)
+                                    test-file)))
+         (should (f-exists? (f-join default-directory test-file)))))))
 
 (provide 'test-org-filing-cabinet-capture)
 ;;; test-org-filing-cabinet-capture.el ends here

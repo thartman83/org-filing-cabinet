@@ -47,8 +47,8 @@
                        (f-join (org-fc/current-filing-cabinet-dir)
                                (f-filename file-path)))))
     (when (not (f-exists? file-path))
-      (error "The file `%s' does not exist and can't be added to
-      the filing cabinet"))
+      (error "The file `%s' does not exist and can't be added to the filing cabinet"
+             file-path))
     (when (not (f-same? file-path filing-path))
       (when (f-exists? filing-path)
         (error "The file `%s' already exists can not refile"))
@@ -69,13 +69,18 @@
   (interactive
    (let ((timestamp (format-time-string "%Y%m%d-%H%M")))
      (list (read-string "Scan file name: " (format "%s-" timestamp)))))
-  (let* ((file-path (org-fc/scan-file file-name))
-         (filing-cabinet-path (f-join (org-fc/current-filing-cabinet-dir)
-                                      (f-filename file-path))))
+  (let ((file-path (org-fc/scan-file file-name)))
     (when (not (f-exists? file-path))
-      (error "File `%s' does not exist, can not be filed"))
-    (f-move file-path filing-cabinet-path)
-    (org-fc/capture-file filing-cabinet-path)))
+      (error "File `%s' does not exist, can not be filed" file-path))
+    (let ((filing-cabinet-path (f-join (org-fc/current-filing-cabinet-dir)
+                                       (f-filename file-path))))
+      (condition-case f-error
+          (f-move file-path filing-cabinet-path)
+        (error
+         (error "Unable to move scan file into cabinet: `%s: %s'"
+                (cadr f-error)
+                (mapconcat #'identity (cdr (cdr f-error)) ", "))))
+      (org-fc/capture-file filing-cabinet-path))))
 
 (defun org-fc/current-filing-cabinet-dir ()
   "Return the name of the directory of the current filing cabinet.
@@ -86,6 +91,8 @@ If the directory does not exist create it."
   (when (not (f-directory? org-fc/filing-cabinet-directory))
     (error "Unable to locate filing cabinet directory `%s'"
            org-fc/filing-cabinet-directory))
+  (when (not (f-writable? org-fc/filing-cabinet-directory))
+    (error "Unable to write to filing cabinet directory `%s'"))
   (let ((retval (f-join org-fc/filing-cabinet-directory
                         (format-time-string "%Y-%m"))))
     (when (not (f-directory? retval))
@@ -114,7 +121,14 @@ If the current time frame category does not exist append it to
     time-frame))
 
 (defun org-fc/parse-whose ()
-  "Parse `org-fc/whose' variable."
+  "Parse `org-fc/whose' variable.
+
+`org-fc/whose' should be either a string containing the name of
+the person to whom the file belong to or a pipe delimited list of
+persons.  If the the variable contains a single entry, return
+it.  Otherwise create a `org-capture' expansions string that will
+prompt during capture for the member of the list to use as the
+value."
   (if (s-contains? "|" org-fc/whose)
       (s-concat "%^{Whose file? |" org-fc/whose "}")
     org-fc/whose))
