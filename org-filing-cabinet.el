@@ -21,9 +21,11 @@
   (message "org-filer version: %d" org-fc/version)
   "0.1")
 
-(require 'org-filing-cabinet-scan)
-(require 'org-filing-cabinet-auto-commit)
-(require 'org-filing-cabinet-capture)
+(add-to-list 'load-path default-directory)
+
+(require 'org-filing-cabinet-scan "org-filing-cabinet-scan.el")
+(require 'org-filing-cabinet-auto-commit "org-filing-cabinet-auto-commit.el")
+(require 'org-filing-cabinet-capture "org-filing-cabinet-capture.el")
 
 (defun org-fc/setup ()
   "Function that will help setup the proper org-filing-cabinet environment."

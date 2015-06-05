@@ -15,6 +15,7 @@
   "Create a temporary directory in ROOT-DIR and execute BODY in pwd.
 Removes directory and its contents at the end of execution.
 Returns the value of body."
+  (declare (indent defun))
   (let ((olddir default-directory)
         (dir (org-fc/get-new-dir-name root-dir)))
     `(unwind-protect

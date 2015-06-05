@@ -59,7 +59,9 @@
     (kill-new filing-path)
     (org-capture nil "f")
     (when org-fc/auto-commit
-      (org-fc/auto-commit-filing-cabinet filing-path))))
+      (org-fc/auto-commit-filing-cabinet filing-path
+                                         (f-join org-fc/filing-cabinet-directory
+                                                 org-fc/org-file)))))
 
 (defun org-fc/get-capture-template ()
   "Get the capture template."
